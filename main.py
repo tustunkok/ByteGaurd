@@ -44,20 +44,22 @@ def main():
     parser.add_argument('--idle-time-limit', type=int, default=IDLE_TIME_LIMIT, help='Seconds of no significant activity before shutdown')
     parser.add_argument('--byte-threshold', type=int, default=BYTE_THRESHOLD, help='Ignore increases smaller than this (in bytes)')
     parser.add_argument('--check-interval', type=int, default=CHECK_INTERVAL, help='Seconds between checks')
+    parser.add_argument('--dry-run', action='store_true', help='Simulate the shutdown process without actually shutting down')
 
     args = parser.parse_args()
 
-    PROCESS_NAME = args.process_name
-    IDLE_TIME_LIMIT = args.idle_time_limit
-    BYTE_THRESHOLD = args.byte_threshold
-    CHECK_INTERVAL = args.check_interval
+    process_name = args.process_name
+    idle_time_limit = args.idle_time_limit
+    byte_threshold = args.byte_threshold
+    check_interval = args.check_interval
+    dry_run = args.dry_run
 
-    proc = find_process_by_name(PROCESS_NAME)
+    proc = find_process_by_name(process_name)
     if not proc:
-        print(f"Process {PROCESS_NAME} not found.")
+        print(f"Process {process_name} not found.")
         sys.exit(1)
 
-    print(f"Monitoring {PROCESS_NAME} (PID: {proc.pid}) and all dynamic children for download activity...")
+    print(f"Monitoring {process_name} (PID: {proc.pid}) and all dynamic children for download activity...")
 
     # Initial byte count
     last_bytes = get_total_read_bytes(get_all_related_procs(proc))
@@ -71,18 +73,22 @@ def main():
             diff = current_bytes - last_bytes
             last_bytes = current_bytes
 
-            if diff >= BYTE_THRESHOLD:
+            if diff >= byte_threshold:
                 last_active = time.time()
                 print(f"Downloading... +{diff} bytes (total: {current_bytes})")
             else:
                 idle_time = time.time() - last_active
                 print(f"Only {diff} bytes in last check — idle for {idle_time:.1f} seconds.")
-                if idle_time >= IDLE_TIME_LIMIT:
-                    print("Download finished. Shutting down...")
-                    os.system("shutdown /s /t 0")
-                    break
+                if idle_time >= idle_time_limit:
+                    if dry_run:
+                        print("Dry run: Shutdown would have been executed.")
+                        break
+                    else:
+                        print("Download finished. Shutting down...")
+                        os.system("shutdown /s /t 0")
+                        break
 
-            time.sleep(CHECK_INTERVAL)
+            time.sleep(check_interval)
 
         except psutil.NoSuchProcess:
             print("Main process closed.")
