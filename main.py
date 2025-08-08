@@ -39,6 +39,14 @@ def get_total_read_bytes(procs: List[psutil.Process]) -> int:
             continue
     return total
 
+def format_bytes(bytes: int) -> str:
+    """Convert bytes to a human-readable string."""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if abs(bytes) < 1024:
+            return f"{bytes:.2f} {unit}"
+        bytes /= 1024
+    return f"{bytes:.2f} PB"
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Monitor download activity and shut down if no significant activity.")
     parser.add_argument('--process-name', default=PROCESS_NAME, help='Target process name')
@@ -76,10 +84,10 @@ def main() -> None:
 
             if diff >= byte_threshold:
                 last_active = time.time()
-                print(f"Downloading... +{diff} bytes (total: {current_bytes})")
+                print(f"Downloading... +{format_bytes(diff)} bytes (total: {format_bytes(current_bytes)})")
             else:
                 idle_time: float = time.time() - last_active
-                print(f"Only {diff} bytes in last check — idle for {idle_time:.1f} seconds.")
+                print(f"Only {format_bytes(diff)} bytes in last check — idle for {idle_time:.1f} seconds.")
                 if idle_time >= idle_time_limit:
                     if dry_run:
                         print("Dry run: Shutdown would have been executed.")
