@@ -3,22 +3,23 @@ import time
 import os
 import sys
 import argparse
+from typing import List, Optional
 
 # ==== CONFIGURATION ====
-PROCESS_NAME = "chrome.exe"   # Target process name
-IDLE_TIME_LIMIT = 30          # Seconds of no significant activity before shutdown
-BYTE_THRESHOLD = 1024         # Ignore increases smaller than this (1 KB)
-CHECK_INTERVAL = 2            # Seconds between checks
+PROCESS_NAME: str = "chrome.exe"   # Target process name
+IDLE_TIME_LIMIT: int = 30          # Seconds of no significant activity before shutdown
+BYTE_THRESHOLD: int = 1024         # Ignore increases smaller than this (1 KB)
+CHECK_INTERVAL: int = 2            # Seconds between checks
 # ========================
 
-def find_process_by_name(name):
+def find_process_by_name(name: str) -> Optional[psutil.Process]:
     """Find the first process matching the given name."""
     for proc in psutil.process_iter(['name']):
         if proc.info['name'] and proc.info['name'].lower() == name.lower():
             return proc
     return None
 
-def get_all_related_procs(main_proc):
+def get_all_related_procs(main_proc: psutil.Process) -> List[psutil.Process]:
     """Get the main process + all child processes recursively, fresh each time."""
     procs = []
     try:
@@ -28,7 +29,7 @@ def get_all_related_procs(main_proc):
         pass
     return procs
 
-def get_total_read_bytes(procs):
+def get_total_read_bytes(procs: List[psutil.Process]) -> int:
     """Sum read_bytes for a list of processes."""
     total = 0
     for p in procs:
@@ -38,7 +39,7 @@ def get_total_read_bytes(procs):
             continue
     return total
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Monitor download activity and shut down if no significant activity.")
     parser.add_argument('--process-name', default=PROCESS_NAME, help='Target process name')
     parser.add_argument('--idle-time-limit', type=int, default=IDLE_TIME_LIMIT, help='Seconds of no significant activity before shutdown')
@@ -48,13 +49,13 @@ def main():
 
     args = parser.parse_args()
 
-    process_name = args.process_name
-    idle_time_limit = args.idle_time_limit
-    byte_threshold = args.byte_threshold
-    check_interval = args.check_interval
-    dry_run = args.dry_run
+    process_name: str = args.process_name
+    idle_time_limit: int = args.idle_time_limit
+    byte_threshold: int = args.byte_threshold
+    check_interval: int = args.check_interval
+    dry_run: bool = args.dry_run
 
-    proc = find_process_by_name(process_name)
+    proc: Optional[psutil.Process] = find_process_by_name(process_name)
     if not proc:
         print(f"Process {process_name} not found.")
         sys.exit(1)
@@ -62,22 +63,22 @@ def main():
     print(f"Monitoring {process_name} (PID: {proc.pid}) and all dynamic children for download activity...")
 
     # Initial byte count
-    last_bytes = get_total_read_bytes(get_all_related_procs(proc))
-    last_active = time.time()
+    last_bytes: int = get_total_read_bytes(get_all_related_procs(proc))
+    last_active: float = time.time()
 
     while True:
         try:
             # Refresh list of processes each loop (catches new children)
-            all_procs = get_all_related_procs(proc)
-            current_bytes = get_total_read_bytes(all_procs)
-            diff = current_bytes - last_bytes
+            all_procs: List[psutil.Process] = get_all_related_procs(proc)
+            current_bytes: int = get_total_read_bytes(all_procs)
+            diff: int = current_bytes - last_bytes
             last_bytes = current_bytes
 
             if diff >= byte_threshold:
                 last_active = time.time()
                 print(f"Downloading... +{diff} bytes (total: {current_bytes})")
             else:
-                idle_time = time.time() - last_active
+                idle_time: float = time.time() - last_active
                 print(f"Only {diff} bytes in last check — idle for {idle_time:.1f} seconds.")
                 if idle_time >= idle_time_limit:
                     if dry_run:
