@@ -1,7 +1,7 @@
 [project]
-name = "autoshutdown"
+name = "ByteGaurd"
 version = "0.1.0"
-description = "Add your description here"
+description = "A script to monitor download activity for a specified process and shut down if no significant activity is detected for a set period of time."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
