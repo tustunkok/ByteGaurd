@@ -2,6 +2,7 @@ import psutil
 import time
 import os
 import sys
+import argparse
 
 # ==== CONFIGURATION ====
 PROCESS_NAME = "chrome.exe"   # Target process name
@@ -38,6 +39,19 @@ def get_total_read_bytes(procs):
     return total
 
 def main():
+    parser = argparse.ArgumentParser(description="Monitor download activity and shut down if no significant activity.")
+    parser.add_argument('--process-name', default=PROCESS_NAME, help='Target process name')
+    parser.add_argument('--idle-time-limit', type=int, default=IDLE_TIME_LIMIT, help='Seconds of no significant activity before shutdown')
+    parser.add_argument('--byte-threshold', type=int, default=BYTE_THRESHOLD, help='Ignore increases smaller than this (in bytes)')
+    parser.add_argument('--check-interval', type=int, default=CHECK_INTERVAL, help='Seconds between checks')
+
+    args = parser.parse_args()
+
+    PROCESS_NAME = args.process_name
+    IDLE_TIME_LIMIT = args.idle_time_limit
+    BYTE_THRESHOLD = args.byte_threshold
+    CHECK_INTERVAL = args.check_interval
+
     proc = find_process_by_name(PROCESS_NAME)
     if not proc:
         print(f"Process {PROCESS_NAME} not found.")
