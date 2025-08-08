@@ -86,7 +86,7 @@ def main() -> None:
                         break
                     else:
                         print("Download finished. Shutting down...")
-                        os.system("shutdown /s /t 0")
+                        os.system("shutdown /s /t 5")
                         break
 
             time.sleep(check_interval)
