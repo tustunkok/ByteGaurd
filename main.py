@@ -73,7 +73,7 @@ def main() -> None:
     process_id: int = args.process_id
 
     if process_id != 0:
-        proc = find_process_by_id(process_id)
+        proc: Optional[psutil.Process] = find_process_by_id(process_id)
     else:
         proc: Optional[psutil.Process] = find_process_by_name(process_name)
     
@@ -107,7 +107,7 @@ def main() -> None:
                         break
                     else:
                         print("Download finished. Shutting down...")
-                        os.system("shutdown /s /t 5")
+                        os.system("shutdown /s /t 60")
                         break
 
             time.sleep(check_interval)
