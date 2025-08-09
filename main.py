@@ -19,6 +19,13 @@ def find_process_by_name(name: str) -> Optional[psutil.Process]:
             return proc
     return None
 
+def find_process_by_id(id: int) -> Optional[psutil.Process]:
+    """Find the first process matching the given name."""
+    for proc in psutil.process_iter(['pid']):
+        if proc.info['pid'] == id:
+            return proc
+    return None
+
 def get_all_related_procs(main_proc: psutil.Process) -> List[psutil.Process]:
     """Get the main process + all child processes recursively, fresh each time."""
     procs = []
@@ -50,6 +57,7 @@ def format_bytes(bytes: int) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Monitor download activity and shut down if no significant activity.")
     parser.add_argument('--process-name', default=PROCESS_NAME, help='Target process name')
+    parser.add_argument('--process-id', type=int, default=0, help='Target process id')
     parser.add_argument('--idle-time-limit', type=int, default=IDLE_TIME_LIMIT, help='Seconds of no significant activity before shutdown')
     parser.add_argument('--byte-threshold', type=int, default=BYTE_THRESHOLD, help='Ignore increases smaller than this (in bytes)')
     parser.add_argument('--check-interval', type=int, default=CHECK_INTERVAL, help='Seconds between checks')
@@ -62,8 +70,13 @@ def main() -> None:
     byte_threshold: int = args.byte_threshold
     check_interval: int = args.check_interval
     dry_run: bool = args.dry_run
+    process_id: int = args.process_id
 
-    proc: Optional[psutil.Process] = find_process_by_name(process_name)
+    if process_id != 0:
+        proc = find_process_by_id(process_id)
+    else:
+        proc: Optional[psutil.Process] = find_process_by_name(process_name)
+    
     if not proc:
         print(f"Process {process_name} not found.")
         sys.exit(1)
